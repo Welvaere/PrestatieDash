@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Welvaere Omzet Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+  @font-face {
+    font-family: "Meditative";
+    src: url("./Meditative.ttf") format("truetype");
+  }
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #F7F5EF; font-family: 'Manrope', system-ui, sans-serif; min-height: 100%; }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(30px) saturate(165%);
+    backdrop-filter: blur(30px) saturate(165%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 24px 50px -16px rgba(8, 25, 18, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+    transition: transform 0.5s ease;
+  }
+  .glass-card.pulse { animation: pulse 0.6s ease; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.015); }
+    100% { transform: scale(1); }
+  }
+  .glass-header {
+    background: rgba(17, 66, 61, 0.86);
+    -webkit-backdrop-filter: blur(26px) saturate(150%);
+    backdrop-filter: blur(26px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 22px 48px -18px rgba(6, 20, 15, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: clamp(6px, 0.7vw, 10px) clamp(12px, 1.2vw, 18px);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(11px, 1vw, 15px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .status-dot {
+    width: clamp(7px, 0.6vw, 10px);
+    height: clamp(7px, 0.6vw, 10px);
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #E5484D;
+    box-shadow: 0 0 6px 1px rgba(229, 72, 77, 0.7);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .status-dot.fresh {
+    background: #3FB950;
+    box-shadow: 0 0 6px 1px rgba(63, 185, 80, 0.7);
+  }
+</style>
+</head>
+<body>
+<div style="width: 100%; min-height: 100vh; box-sizing: border-box; position: relative; background: linear-gradient(150deg, #F1EEE1 0%, #CBD6C6 45%, #93AA98 100%); overflow: hidden;">
+  <div style="position: absolute; inset: 0; z-index: 0; overflow: hidden;">
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+      <defs>
+        <filter id="linesoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.1"></feGaussianBlur></filter>
+        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="16"></feGaussianBlur></filter>
+        <linearGradient id="foldFlow" gradientUnits="userSpaceOnUse" x1="520" y1="-180" x2="1050" y2="1280">
+          <stop offset="0%" stop-color="#F2F7EB"></stop>
+          <stop offset="18%" stop-color="#D2E4D1"></stop>
+          <stop offset="36%" stop-color="#9AC0A2"></stop>
+          <stop offset="54%" stop-color="#548270"></stop>
+          <stop offset="70%" stop-color="#2C5A45"></stop>
+          <stop offset="86%" stop-color="#153A2C"></stop>
+          <stop offset="100%" stop-color="#081F19"></stop>
+        </linearGradient>
+      </defs>
+      <path d="M -200,720 C 200,480 380,360 640,200 C 950,10 1150,100 1450,-130 C 1680,-310 1850,-400 2120,-540 L 2120,-260 C 1850,-120 1680,-30 1450,150 C 1150,380 950,290 640,480 C 380,640 200,760 -200,1000 Z" fill="url(#foldFlow)"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260 L 2120,20 C 1850,160 1680,250 1450,430 C 1150,660 950,570 640,760 C 380,920 200,1040 -200,1280 Z" fill="url(#foldFlow)"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20 L 2120,300 C 1850,440 1680,530 1450,710 C 1150,940 950,850 640,1040 C 380,1200 200,1320 -200,1560 Z" fill="url(#foldFlow)"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260" fill="none" stroke="#F3F8EF" stroke-width="34" opacity="0.30" filter="url(#glow)"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20" fill="none" stroke="#EAF3E6" stroke-width="28" opacity="0.24" filter="url(#glow)"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260" fill="none" stroke="#F8FBF5" stroke-width="2.5" opacity="0.6" filter="url(#linesoft)"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20" fill="none" stroke="#F0F6EC" stroke-width="2" opacity="0.45" filter="url(#linesoft)"></path>
+    </svg>
+  </div>
+  <div style="position: relative; z-index: 1; width: 100%; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column;">
+    <div class="glass-header" style="box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: clamp(12px, 1.5vw, 24px); margin: clamp(14px, 1.8vw, 32px) clamp(18px, 2.4vw, 40px) 0; padding: clamp(16px, 2.1vw, 32px) clamp(24px, 2.9vw, 52px); border-radius: clamp(14px, 1.25vw, 24px); border-color: #FFFFFF38; background-color: #11423DB3">
+      <div style="display: flex; flex-direction: column; justify-content: center; gap: clamp(6px, 0.9vw, 12px); min-width: 0;">
+        <div style="font-family: 'Meditative', serif; font-size: clamp(28px, 2.7vw, 52px); line-height: 1; color: #FFFFFF;">Welvaere Omzet Tracker</div>
+        <div style="font-size: clamp(14px, 1.25vw, 24px); font-weight: 600; color: rgba(255, 255, 255, 0.72); letter-spacing: 0.04em;">Omzet per vestiging · deze maand</div>
+      </div>
+      <div class="status-badge">
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-countdown">--:--</span>
+      </div>
+    </div>
+    <div id="card-grid" style="flex-grow: 1; min-height: 0; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 2.1vw, 44px); padding: clamp(18px, 2.4vw, 44px) clamp(18px, 2.4vw, 40px) clamp(24px, 3.3vw, 68px);">
+      <div class="glass-card" data-key="nl" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇳🇱 NEDERLAND</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="de" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇩🇪 Duitsland</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="be" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇧🇪 België</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="fr" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇫🇷 Frankrijk</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Make.com "read" webhook URL (custom webhook trigger -> Data Store
+  // search -> Aggregator -> Webhook Response). The URL itself is the
+  // secret (Make generates an unguessable path), so no auth header needed.
+  var SUMMARY_URL = 'https://hook.eu1.make.com/eu973qwbh3jp9i2a6x9lv2b77fqdv5b4';
+
+  var data = { nl: 0, de: 0, be: 0, fr: 0 };
+
+  var REFRESH_MS = 60 * 60 * 1000; // 60 minutes
+  var STALE_AFTER_MS = 15 * 60 * 1000; // dot turns red if last successful refresh is older than this
+
+  var lastSuccessAt = null;
+  var nextRefreshAt = Date.now() + REFRESH_MS;
+
+  var dotEl = document.getElementById('status-dot');
+  var countdownEl = document.getElementById('status-countdown');
+
+  function fmtCountdown(ms) {
+    var totalSec = Math.max(0, Math.round(ms / 1000));
+    var m = Math.floor(totalSec / 60);
+    var s = totalSec % 60;
+    return m + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  function updateBadge() {
+    countdownEl.textContent = fmtCountdown(nextRefreshAt - Date.now());
+    var fresh = lastSuccessAt !== null && (Date.now() - lastSuccessAt) <= STALE_AFTER_MS;
+    dotEl.classList.toggle('fresh', fresh);
+  }
+
+  function fmtMoney(v) {
+    var s = v.toFixed(2).replace('.', ',');
+    var parts = s.split(',');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return '€ ' + parts.join(',');
+  }
+
+  function render(pulse) {
+    Object.keys(data).forEach(function (key) {
+      var card = document.querySelector('.glass-card[data-key="' + key + '"]');
+      if (!card) return;
+      card.querySelector('.value').textContent = fmtMoney(data[key]);
+      if (pulse) {
+        card.classList.remove('pulse');
+        void card.offsetWidth;
+        card.classList.add('pulse');
+      }
+    });
+  }
+
+  function refresh() {
+    nextRefreshAt = Date.now() + REFRESH_MS;
+    fetch(SUMMARY_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        data = json;
+        lastSuccessAt = Date.now();
+        render(true);
+      })
+      .catch(function (err) {
+        console.error('Omzet Tracker: failed to refresh', err);
+      });
+  }
+
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+  setInterval(updateBadge, 1000);
+  updateBadge();
+})();
+</script>
+</body>
+</html>
