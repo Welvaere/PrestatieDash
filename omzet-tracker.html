@@ -139,7 +139,7 @@
   var data = { nl: 0, de: 0, be: 0, fr: 0 };
 
   var REFRESH_MS = 60 * 60 * 1000; // 60 minutes
-  var STALE_AFTER_MS = 15 * 60 * 1000; // dot turns red if last successful refresh is older than this
+  var STALE_AFTER_MS = 60 * 60 * 1000; // dot turns red if last successful refresh is older than this
 
   var lastSuccessAt = null;
   var nextRefreshAt = Date.now() + REFRESH_MS;
