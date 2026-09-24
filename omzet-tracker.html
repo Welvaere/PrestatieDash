@@ -171,7 +171,8 @@
 
   function updateBadge() {
     var open = isOpenNow();
-    if (open && wasOpen === false) refresh(); // just opened, don't wait for the next scheduled tick
+    // Refresh when we just opened, or when the countdown has run out
+    if (open && (wasOpen === false || Date.now() >= nextRefreshAt)) refresh();
     wasOpen = open;
 
     if (!open) {
@@ -225,7 +226,6 @@
   }
 
   refresh();
-  setInterval(refresh, REFRESH_MS);
   setInterval(updateBadge, 1000);
   updateBadge();
 })();
