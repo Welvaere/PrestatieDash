@@ -10,3 +10,6 @@ Dashboard om huidige statistieken mee weer te geven
 - Status-dot: groen = data is vers, rood = laatste geslaagde refresh is ouder dan een uur (of mislukt), geel = gesloten.
 
 Tijden en interval aanpassen: `OPEN_HOUR`, `CLOSE_HOUR`, `REFRESH_MS` en `STALE_AFTER_MS` bovenin het script.
+
+Open de HTML File met het volgende command:
+`chromium --remote-debugging-port=9222 --remote-allow-origins=* --kiosk "Documents/PrestatieDash/omzet-tracker.html"`
