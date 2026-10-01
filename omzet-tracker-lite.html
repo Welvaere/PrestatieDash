@@ -10,6 +10,11 @@
     font-family: "Meditative";
     src: url("./Meditative.ttf") format("truetype");
   }
+  /* Flags only (NL/DE/BE/FR), subset from Noto-3D-192.ttf */
+  @font-face {
+    font-family: "Noto3D";
+    src: url("./Noto-3D-flags.ttf") format("truetype");
+  }
   :root {
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
@@ -163,19 +168,19 @@
     </div>
     <div id="card-grid" class="view" data-view="1" style="flex-grow: 1; min-height: 0; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 2.1vw, 44px); padding: clamp(18px, 2.4vw, 44px) clamp(18px, 2.4vw, 40px) clamp(24px, 3.3vw, 68px);">
       <div class="glass-card" data-key="nl" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
-        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇳🇱 NEDERLAND</div>
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative, Noto3D">🇳🇱 NEDERLAND</div>
         <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
       </div>
       <div class="glass-card" data-key="de" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
-        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇩🇪 Duitsland</div>
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative, Noto3D">🇩🇪 Duitsland</div>
         <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
       </div>
       <div class="glass-card" data-key="be" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
-        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇧🇪 België</div>
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative, Noto3D">🇧🇪 België</div>
         <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
       </div>
       <div class="glass-card" data-key="fr" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
-        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇫🇷 Frankrijk</div>
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative, Noto3D">🇫🇷 Frankrijk</div>
         <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
       </div>
     </div>
