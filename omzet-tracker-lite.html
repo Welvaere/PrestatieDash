@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Welvaere Omzet Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+  @font-face {
+    font-family: "Meditative";
+    src: url("./Meditative.ttf") format("truetype");
+  }
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #F7F5EF; font-family: 'Manrope', system-ui, sans-serif; min-height: 100%; }
+
+  /* LITE: no backdrop-filter. Flat translucent fills instead. */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 12px 24px -12px rgba(8, 25, 18, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    transition: transform 0.5s ease;
+  }
+  .glass-card.pulse { animation: pulse 0.6s ease; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.015); }
+    100% { transform: scale(1); }
+  }
+  .glass-header {
+    background: rgba(17, 66, 61, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 12px 24px -12px rgba(6, 20, 15, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: clamp(6px, 0.7vw, 10px) clamp(12px, 1.2vw, 18px);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(11px, 1vw, 15px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .status-dot {
+    width: clamp(7px, 0.6vw, 10px);
+    height: clamp(7px, 0.6vw, 10px);
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #E5484D;
+    box-shadow: 0 0 6px 1px rgba(229, 72, 77, 0.7);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .status-dot.fresh {
+    background: #3FB950;
+    box-shadow: 0 0 6px 1px rgba(63, 185, 80, 0.7);
+  }
+  .status-dot.closed {
+    background: #E3B341;
+    box-shadow: 0 0 6px 1px rgba(227, 179, 65, 0.7);
+  }
+
+  /* Pages: press 1 / 2 to switch */
+  .view[hidden] { display: none !important; }
+
+  /* Charts (page 2) - cards use the same glass background as page 1 */
+  :root {
+    --series-main: #1F6B5A;
+    --chart-grid: rgba(19, 37, 31, 0.12);
+    --chart-axis: rgba(19, 37, 31, 0.32);
+    --ink-primary: #13251F;
+    --ink-secondary: #3F4A45;
+  }
+  .chart-card {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1vw, 20px);
+    border-radius: clamp(14px, 1.25vw, 24px);
+    padding: clamp(18px, 1.8vw, 36px) clamp(24px, 2.4vw, 48px);
+  }
+  .chart-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+  .chart-title {
+    font-size: clamp(18px, 1.6vw, 32px);
+    font-weight: 700;
+    color: #11423D;
+  }
+  .chart-period {
+    font-size: clamp(13px, 1vw, 20px);
+    font-weight: 600;
+    color: var(--ink-secondary);
+  }
+  .chart { flex-grow: 1; min-height: 0; position: relative; }
+  .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  /* Page switch animation: NL card grows to fill the grid */
+  .expander {
+    position: fixed;
+    z-index: 5;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: clip-path 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.55s ease;
+  }
+  .view-fade { transition: opacity 0.3s ease; }
+</style>
+</head>
+<body>
+<div style="width: 100%; min-height: 100vh; box-sizing: border-box; position: relative; background: linear-gradient(150deg, #F1EEE1 0%, #CBD6C6 45%, #93AA98 100%); overflow: hidden;">
+  <div style="position: absolute; inset: 0; z-index: 0; overflow: hidden;">
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+      <defs>
+        <linearGradient id="foldFlow" gradientUnits="userSpaceOnUse" x1="520" y1="-180" x2="1050" y2="1280">
+          <stop offset="0%" stop-color="#F2F7EB"></stop>
+          <stop offset="18%" stop-color="#D2E4D1"></stop>
+          <stop offset="36%" stop-color="#9AC0A2"></stop>
+          <stop offset="54%" stop-color="#548270"></stop>
+          <stop offset="70%" stop-color="#2C5A45"></stop>
+          <stop offset="86%" stop-color="#153A2C"></stop>
+          <stop offset="100%" stop-color="#081F19"></stop>
+        </linearGradient>
+      </defs>
+      <path d="M -200,720 C 200,480 380,360 640,200 C 950,10 1150,100 1450,-130 C 1680,-310 1850,-400 2120,-540 L 2120,-260 C 1850,-120 1680,-30 1450,150 C 1150,380 950,290 640,480 C 380,640 200,760 -200,1000 Z" fill="url(#foldFlow)"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260 L 2120,20 C 1850,160 1680,250 1450,430 C 1150,660 950,570 640,760 C 380,920 200,1040 -200,1280 Z" fill="url(#foldFlow)"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20 L 2120,300 C 1850,440 1680,530 1450,710 C 1150,940 950,850 640,1040 C 380,1200 200,1320 -200,1560 Z" fill="url(#foldFlow)"></path>
+      <!-- LITE: glow faked with stacked wide, faint strokes instead of a blur filter -->
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260" fill="none" stroke="#F3F8EF" stroke-width="56" opacity="0.08" stroke-linecap="round"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260" fill="none" stroke="#F3F8EF" stroke-width="30" opacity="0.14" stroke-linecap="round"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20" fill="none" stroke="#EAF3E6" stroke-width="48" opacity="0.07" stroke-linecap="round"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20" fill="none" stroke="#EAF3E6" stroke-width="24" opacity="0.12" stroke-linecap="round"></path>
+      <path d="M -200,1000 C 200,760 380,640 640,480 C 950,290 1150,380 1450,150 C 1680,-30 1850,-120 2120,-260" fill="none" stroke="#F8FBF5" stroke-width="2.5" opacity="0.6"></path>
+      <path d="M -200,1280 C 200,1040 380,920 640,760 C 950,570 1150,660 1450,430 C 1680,250 1850,160 2120,20" fill="none" stroke="#F0F6EC" stroke-width="2" opacity="0.45"></path>
+    </svg>
+  </div>
+  <div style="position: relative; z-index: 1; width: 100%; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column;">
+    <div class="glass-header" style="box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: clamp(12px, 1.5vw, 24px); margin: clamp(14px, 1.8vw, 32px) clamp(18px, 2.4vw, 40px) 0; padding: clamp(16px, 2.1vw, 32px) clamp(24px, 2.9vw, 52px); border-radius: clamp(14px, 1.25vw, 24px); border-color: #FFFFFF38; background-color: #11423DF0">
+      <div style="display: flex; flex-direction: column; justify-content: center; gap: clamp(6px, 0.9vw, 12px); min-width: 0;">
+        <div style="font-family: 'Meditative', serif; font-size: clamp(28px, 2.7vw, 52px); line-height: 1; color: #FFFFFF;">Welvaere Omzet Tracker</div>
+        <div id="subtitle" style="font-size: clamp(14px, 1.25vw, 24px); font-weight: 600; color: rgba(255, 255, 255, 0.72); letter-spacing: 0.04em;">Omzet per vestiging · deze maand (ver 0.2.1a)</div>
+      </div>
+      <div class="status-badge">
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-countdown">--:--</span>
+      </div>
+    </div>
+    <div id="card-grid" class="view" data-view="1" style="flex-grow: 1; min-height: 0; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 2.1vw, 44px); padding: clamp(18px, 2.4vw, 44px) clamp(18px, 2.4vw, 40px) clamp(24px, 3.3vw, 68px);">
+      <div class="glass-card" data-key="nl" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇳🇱 NEDERLAND</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="de" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇩🇪 Duitsland</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="be" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇧🇪 België</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+      <div class="glass-card" data-key="fr" style="min-width: 0; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 1.25vw, 24px); border-radius: clamp(14px, 1.25vw, 24px); padding: clamp(24px, 2.9vw, 52px);">
+        <div style="font-size: clamp(28px, 3.3vw, 64px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #11423D; font-family: Meditative">🇫🇷 Frankrijk</div>
+        <div class="value" style="font-size: clamp(36px, 5vw, 120px); font-weight: 700; line-height: 1; color: #13251F; white-space: nowrap;">€&nbsp;[XXX.XXX,XX]</div>
+      </div>
+    </div>
+    <div id="chart-view" class="view" data-view="2" hidden style="flex-grow: 1; min-height: 0; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 2.1vw, 44px); padding: clamp(18px, 2.4vw, 44px) clamp(18px, 2.4vw, 40px) clamp(24px, 3.3vw, 68px);">
+      <div class="glass-card chart-card">
+        <div class="chart-head"><div class="chart-title">Omzet deze maand tot zover</div><div class="chart-period" data-period="month"></div></div>
+        <div class="chart" id="chart-month"></div>
+      </div>
+      <div class="glass-card chart-card">
+        <div class="chart-head"><div class="chart-title">Omzet dit jaar tot zover</div><div class="chart-period" data-period="year"></div></div>
+        <div class="chart" id="chart-year"></div>
+      </div>
+      <div class="glass-card chart-card">
+        <div class="chart-head"><div class="chart-title">Omzet Saunas</div><div class="chart-period" data-period="month"></div></div>
+        <div class="chart" id="chart-saunas"></div>
+      </div>
+      <div class="glass-card chart-card">
+        <div class="chart-head"><div class="chart-title">Omzet Hottubs</div><div class="chart-period" data-period="month"></div></div>
+        <div class="chart" id="chart-hottubs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Make.com "read" webhook URL (custom webhook trigger -> Data Store
+  // search -> Aggregator -> Webhook Response). The URL itself is the
+  // secret (Make generates an unguessable path), so no auth header needed.
+  var SUMMARY_URL = 'https://hook.eu1.make.com/eu973qwbh3jp9i2a6x9lv2b77fqdv5b4';
+
+  var data = { nl: 0, de: 0, be: 0, fr: 0 };
+
+  var REFRESH_MS = 60 * 60 * 1000; // 60 minutes
+  var STALE_AFTER_MS = 60 * 60 * 1000; // dot turns red if last successful refresh is older than this
+
+  // Ma-Za 9:00-17:00, Zo dicht
+  var OPEN_HOUR = 9;
+  var CLOSE_HOUR = 17;
+  function isOpenNow() {
+    var d = new Date();
+    if (d.getDay() === 0) return false; // Zondag dicht
+    var hour = d.getHours() + d.getMinutes() / 60;
+    return hour >= OPEN_HOUR && hour < CLOSE_HOUR;
+  }
+
+  var lastSuccessAt = null;
+  var nextRefreshAt = Date.now() + REFRESH_MS;
+  var wasOpen = null;
+
+  var dotEl = document.getElementById('status-dot');
+  var countdownEl = document.getElementById('status-countdown');
+
+  // LITE: whole minutes only, ticked every 30s instead of every second
+  function fmtCountdown(ms) {
+    return Math.max(0, Math.ceil(ms / 60000)) + ' min';
+  }
+  function setText(el, str) {
+    if (el.textContent !== str) el.textContent = str; // skip no-op repaints
+  }
+
+  function updateBadge() {
+    var open = isOpenNow();
+    // Refresh when we just opened, or when the countdown has run out
+    if (open && (wasOpen === false || Date.now() >= nextRefreshAt)) refresh();
+    wasOpen = open;
+
+    if (!open) {
+      setText(countdownEl, 'Buiten openingstijd');
+      dotEl.classList.remove('fresh');
+      dotEl.classList.add('closed');
+      return;
+    }
+    dotEl.classList.remove('closed');
+    setText(countdownEl, fmtCountdown(nextRefreshAt - Date.now()));
+    var fresh = lastSuccessAt !== null && (Date.now() - lastSuccessAt) <= STALE_AFTER_MS;
+    dotEl.classList.toggle('fresh', fresh);
+  }
+
+  function fmtMoney(v) {
+    var s = v.toFixed(2).replace('.', ',');
+    var parts = s.split(',');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return '€ ' + parts.join(',');
+  }
+
+  function render(pulse) {
+    Object.keys(data).forEach(function (key) {
+      var card = document.querySelector('.glass-card[data-key="' + key + '"]');
+      if (!card) return;
+      setText(card.querySelector('.value'), fmtMoney(data[key]));
+      if (pulse) {
+        card.classList.remove('pulse');
+        void card.offsetWidth;
+        card.classList.add('pulse');
+      }
+    });
+  }
+
+  function refresh() {
+    if (!isOpenNow()) return;
+    nextRefreshAt = Date.now() + REFRESH_MS;
+    fetch(SUMMARY_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        data = json;
+        lastSuccessAt = Date.now();
+        render(true);
+        if (currentView === 2) { renderCharts(); updateSubtitle(); }
+      })
+      .catch(function (err) {
+        console.error('Omzet Tracker: failed to refresh', err);
+      });
+  }
+
+  // ---- Page 2: charts (Nederland) ----
+
+  // DUMMY DATA - replace with real data from Make.com later.
+  // Shape: {
+  //   year, month (0-11), daysInMonth,
+  //   daily:   { total: [...], saunas: [...], hottubs: [...] }  revenue per day this month, day 1 up to today
+  //   monthly: [...]                                             revenue per month this year, jan up to this month
+  // }
+  function getChartData() {
+    var now = new Date();
+    var y = now.getFullYear(), m = now.getMonth();
+    var seed = y * 12 + m;
+    function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    var daily = { total: [], saunas: [], hottubs: [] };
+    for (var d = 1; d <= now.getDate(); d++) {
+      var closed = new Date(y, m, d).getDay() === 0;
+      var total = closed ? 0 : Math.round(4200 * (0.6 + rand() * 0.8));
+      daily.total.push(total);
+      daily.saunas.push(Math.round(total * (0.35 + rand() * 0.2)));
+      daily.hottubs.push(Math.round(total * (0.25 + rand() * 0.2)));
+    }
+    var monthly = [];
+    for (var mo = 0; mo < m; mo++) monthly.push(Math.round(4200 * 26 * (0.8 + rand() * 0.4)));
+    monthly.push(daily.total.reduce(function (a, v) { return a + v; }, 0));
+    return { year: y, month: m, daysInMonth: new Date(y, m + 1, 0).getDate(), daily: daily, monthly: monthly };
+  }
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function svgEl(name, attrs, parent) {
+    var n = document.createElementNS(SVG_NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function svgText(parent, x, y, str, attrs) {
+    var t = svgEl('text', attrs, parent);
+    t.setAttribute('x', x);
+    t.setAttribute('y', y);
+    t.textContent = str;
+    return t;
+  }
+
+  function fmtEuro(v) {
+    return '€ ' + String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  // Round axis ticks: 0, step, 2*step ... up to at least max
+  function niceTicks(max, count) {
+    if (max <= 0) return [0, 1];
+    var raw = max / count;
+    var step = Math.pow(10, Math.floor(Math.log10(raw)));
+    var err = raw / step;
+    if (err >= 7.5) step *= 10;
+    else if (err >= 3.5) step *= 5;
+    else if (err >= 1.5) step *= 2;
+    var ticks = [];
+    for (var v = 0; v < max + step; v += step) ticks.push(v);
+    return ticks;
+  }
+
+  function cumulative(values) {
+    var sum = 0;
+    return values.map(function (v) { return (sum += v); });
+  }
+
+  // Running-total line with a soft area wash, end dot and end label.
+  // values: one per slot so far; slots: total slots on the x axis; xTicks: [{ i, label }]
+  function renderLine(container, values, slots, xTicks) {
+    container.innerHTML = '';
+    var w = container.clientWidth, h = container.clientHeight;
+    var font = Math.max(13, Math.min(36, window.innerWidth * 0.0085));
+    var last = values.length ? values[values.length - 1] : 0;
+    var ticks = niceTicks(last, 4);
+    var longest = ticks.reduce(function (a, t) { return Math.max(a, fmtEuro(t).length); }, 0);
+    var m = { top: font * 0.8, right: font * 0.6, bottom: font * 2, left: longest * font * 0.6 + font };
+    var pw = w - m.left - m.right, ph = h - m.top - m.bottom;
+    var yTop = ticks[ticks.length - 1];
+    function x(i) { return m.left + (i / Math.max(1, slots - 1)) * pw; }
+    function y(v) { return m.top + ph - (v / yTop) * ph; }
+
+    var svg = svgEl('svg', { width: w, height: h, 'font-size': font, 'font-family': 'Manrope, system-ui, sans-serif' }, container);
+    ticks.forEach(function (t) {
+      svgEl('line', { x1: m.left, x2: m.left + pw, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--chart-axis)' : 'var(--chart-grid)', 'stroke-width': 1 }, svg);
+      svgText(svg, m.left - font * 0.6, y(t), fmtEuro(t), { 'text-anchor': 'end', 'dominant-baseline': 'middle', fill: 'var(--ink-secondary)', 'font-variant-numeric': 'tabular-nums' });
+    });
+    xTicks.forEach(function (t) {
+      svgText(svg, x(t.i), m.top + ph + font * 1.4, t.label, { 'text-anchor': 'middle', fill: 'var(--ink-secondary)' });
+    });
+    if (!values.length) return;
+
+    var pts = values.map(function (v, i) { return x(i) + ',' + y(v); });
+    var n = values.length - 1;
+    svgEl('polygon', { points: x(0) + ',' + y(0) + ' ' + pts.join(' ') + ' ' + x(n) + ',' + y(0), fill: 'var(--series-main)', 'fill-opacity': 0.1 }, svg);
+    svgEl('polyline', { points: pts.join(' '), fill: 'none', stroke: 'var(--series-main)', 'stroke-width': 2 * Math.max(1, window.innerWidth / 1920), 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+    svgEl('circle', { cx: x(n), cy: y(last), r: font * 0.32, fill: 'var(--series-main)', stroke: 'rgba(255, 255, 255, 0.9)', 'stroke-width': 2 }, svg);
+
+    // End label above the dot; flip to the left side when it would run off the right edge
+    var label = fmtEuro(last);
+    var labelW = label.length * font * 0.62;
+    var right = x(n) + font * 0.6 + labelW > w;
+    svgText(svg, right ? x(n) - font * 0.6 : x(n) + font * 0.6, y(last) - font * 0.6, label, { 'text-anchor': right ? 'end' : 'start', fill: 'var(--ink-primary)', 'font-weight': 700 });
+  }
+
+  function renderCharts() {
+    var data = getChartData();
+    var monthName = new Date(data.year, data.month, 1).toLocaleDateString('nl-NL', { month: 'long' });
+    document.querySelectorAll('#chart-view .chart-period').forEach(function (el) {
+      el.textContent = el.dataset.period === 'year' ? String(data.year) : monthName + ' ' + data.year;
+    });
+
+    var dayTicks = [1, 5, 10, 15, 20, 25];
+    if (data.daysInMonth - 25 >= 3) dayTicks.push(data.daysInMonth);
+    dayTicks = dayTicks.map(function (d) { return { i: d - 1, label: String(d) }; });
+    var monthTicks = [];
+    for (var mo = 0; mo < 12; mo++) {
+      monthTicks.push({ i: mo, label: new Date(data.year, mo, 1).toLocaleDateString('nl-NL', { month: 'short' }).replace('.', '') });
+    }
+
+    renderLine(document.getElementById('chart-month'), cumulative(data.daily.total), data.daysInMonth, dayTicks);
+    renderLine(document.getElementById('chart-year'), cumulative(data.monthly), 12, monthTicks);
+    renderLine(document.getElementById('chart-saunas'), cumulative(data.daily.saunas), data.daysInMonth, dayTicks);
+    renderLine(document.getElementById('chart-hottubs'), cumulative(data.daily.hottubs), data.daysInMonth, dayTicks);
+  }
+
+  // ---- Switching pages with keys 1 / 2 ----
+
+  function updateSubtitle() {
+    var nlValue = document.querySelector('.glass-card[data-key="nl"] .value').textContent;
+    document.getElementById('subtitle').textContent =
+      currentView === 2 ? '🇳🇱 Nederland · ' + nlValue : 'Omzet per vestiging · deze maand (ver 0.2.1a)';
+  }
+  var currentView = 1;
+  var animating = false;
+  var EXPANDED_OPACITY = 0.45; // how visible the NL card is once it fills the grid
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+
+  function showView(n) {
+    currentView = n;
+    document.querySelectorAll('.view').forEach(function (v) {
+      v.hidden = Number(v.dataset.view) !== n;
+    });
+    updateSubtitle();
+    if (n === 2) renderCharts(); // must draw while visible, hidden elements have no size
+    try { history.replaceState(null, '', n === 2 ? '#2' : '#'); } catch (e) {}
+  }
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function nextFrame() { return new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); }); }
+
+  // Area the cards sit in (grid minus its padding); both views share it
+  function gridArea() {
+    var grid = document.getElementById(currentView === 1 ? 'card-grid' : 'chart-view');
+    var r = grid.getBoundingClientRect(), cs = getComputedStyle(grid);
+    var left = r.left + parseFloat(cs.paddingLeft), top = r.top + parseFloat(cs.paddingTop);
+    return { left: left, top: top, width: r.right - parseFloat(cs.paddingRight) - left, height: r.bottom - parseFloat(cs.paddingBottom) - top };
+  }
+  // clip-path that cuts the full-grid expander down to the NL card's rect
+  function nlClip(area, radius) {
+    var c = document.querySelector('.glass-card[data-key="nl"]').getBoundingClientRect();
+    return 'inset(' + (c.top - area.top) + 'px ' + (area.left + area.width - c.right) + 'px ' +
+      (area.top + area.height - c.bottom) + 'px ' + (c.left - area.left) + 'px round ' + radius + ')';
+  }
+  function makeExpander(area, radius) {
+    var ex = document.createElement('div');
+    ex.className = 'expander';
+    ex.style.left = area.left + 'px';
+    ex.style.top = area.top + 'px';
+    ex.style.width = area.width + 'px';
+    ex.style.height = area.height + 'px';
+    ex.style.borderRadius = radius;
+    document.body.appendChild(ex);
+    return ex;
+  }
+  function setOpacity(els, v) { els.forEach(function (el) { el.classList.add('view-fade'); el.style.opacity = v; }); }
+  function clearOpacity(els) { els.forEach(function (el) { el.classList.remove('view-fade'); el.style.opacity = ''; }); }
+
+  function switchTo(n) {
+    if (n === currentView || animating) return;
+    if (reduceMotion) { showView(n); return; }
+    animating = true;
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#card-grid .glass-card'));
+    var chartCards = Array.prototype.slice.call(document.querySelectorAll('#chart-view .chart-card'));
+    var radius = getComputedStyle(cards[0]).borderTopLeftRadius;
+    var area = gridArea();
+    var ex = makeExpander(area, radius);
+
+    var done;
+    if (n === 2) {
+      // NL card grows to fill the grid (fading down so it doesn't turn into a white sheet), then the charts fade in
+      ex.style.clipPath = nlClip(area, radius);
+      setOpacity(cards, 0);
+      done = nextFrame()
+        .then(function () { ex.style.clipPath = 'inset(0px round ' + radius + ')'; ex.style.opacity = EXPANDED_OPACITY; return wait(550); })
+        .then(function () {
+          setOpacity(chartCards, 0);
+          showView(2);
+          clearOpacity(cards);
+          return nextFrame();
+        })
+        .then(function () { setOpacity(chartCards, 1); ex.style.opacity = 0; return wait(550); })
+        .then(function () { clearOpacity(chartCards); });
+    } else {
+      // Charts fade out, the big card shrinks back into the NL card
+      ex.style.clipPath = 'inset(0px round ' + radius + ')';
+      ex.style.opacity = 0;
+      done = nextFrame()
+        .then(function () { ex.style.opacity = EXPANDED_OPACITY; setOpacity(chartCards, 0); return wait(300); })
+        .then(function () {
+          setOpacity(cards, 0);
+          showView(1);
+          clearOpacity(chartCards);
+          ex.style.clipPath = nlClip(area, radius);
+          ex.style.opacity = 1;
+          return wait(550);
+        })
+        .then(function () { setOpacity(cards, 1); ex.style.opacity = 0; return wait(550); })
+        .then(function () { clearOpacity(cards); });
+    }
+    done.then(function () { ex.remove(); animating = false; });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '1') switchTo(1);
+    else if (e.key === '2') switchTo(2);
+  });
+  window.addEventListener('resize', function () {
+    if (currentView === 2) renderCharts();
+  });
+
+  showView(location.hash === '#2' ? 2 : 1);
+
+  refresh();
+  setInterval(updateBadge, 30000);
+  updateBadge();
+})();
+</script>
+</body>
+</html>
