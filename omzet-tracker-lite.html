@@ -136,7 +136,7 @@
     <div class="glass-header" style="box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: clamp(12px, 1.5vw, 24px); margin: clamp(14px, 1.8vw, 32px) clamp(18px, 2.4vw, 40px) 0; padding: clamp(16px, 2.1vw, 32px) clamp(24px, 2.9vw, 52px); border-radius: clamp(14px, 1.25vw, 24px); border-color: #FFFFFF38; background-color: #11423DF0">
       <div style="display: flex; flex-direction: column; justify-content: center; gap: clamp(6px, 0.9vw, 12px); min-width: 0;">
         <div style="font-family: 'Meditative', serif; font-size: clamp(28px, 2.7vw, 52px); line-height: 1; color: #FFFFFF;">Welvaere Omzet Tracker</div>
-        <div id="subtitle" style="font-size: clamp(14px, 1.25vw, 24px); font-weight: 600; color: rgba(255, 255, 255, 0.72); letter-spacing: 0.04em;">Omzet per vestiging · deze maand (ver 0.2.3a lite - Raspberry Pi 3B edition)</div>
+        <div id="subtitle" style="font-size: clamp(14px, 1.25vw, 24px); font-weight: 600; color: rgba(255, 255, 255, 0.72); letter-spacing: 0.04em;">Omzet per vestiging · deze maand (ver 0.3.0a lite - Raspberry Pi 3B edition)</div>
       </div>
       <div class="status-badge">
         <span id="status-dot" class="status-dot"></span>
@@ -278,7 +278,12 @@
 
   // ---- Page 2: charts (Nederland) ----
 
-  // DUMMY DATA - replace with real data from Make.com later.
+  // Chart data comes from the webhook as data.NLRAW: raw sale.report read_group rows
+  // (NL only, this year) grouped by product category and day:
+  //   { categ_id: [id, name] | false, "__range": { "date:day": { from: "YYYY-MM-DD hh:mm:ss" } }, price_subtotal }
+  // Everything below is aggregated here. Values are per day / per month (renderLine accumulates them).
+  var CATEG_SAUNAS = 10;  // 3Tonsauna
+  var CATEG_HOTTUBS = 8;  // 0Ducktubs
   // Shape: {
   //   year, month (0-11), daysInMonth,
   //   daily:   { total: [...], saunas: [...], hottubs: [...] }  revenue per day this month, day 1 up to today
@@ -286,20 +291,25 @@
   // }
   function getChartData() {
     var now = new Date();
-    var y = now.getFullYear(), m = now.getMonth();
-    var seed = y * 12 + m;
-    function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    var daily = { total: [], saunas: [], hottubs: [] };
-    for (var d = 1; d <= now.getDate(); d++) {
-      var closed = new Date(y, m, d).getDay() === 0;
-      var total = closed ? 0 : Math.round(4200 * (0.6 + rand() * 0.8));
-      daily.total.push(total);
-      daily.saunas.push(Math.round(total * (0.35 + rand() * 0.2)));
-      daily.hottubs.push(Math.round(total * (0.25 + rand() * 0.2)));
-    }
-    var monthly = [];
-    for (var mo = 0; mo < m; mo++) monthly.push(Math.round(4200 * 26 * (0.8 + rand() * 0.4)));
-    monthly.push(daily.total.reduce(function (a, v) { return a + v; }, 0));
+    var y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+    function zeros(n) { var a = []; for (var i = 0; i < n; i++) a.push(0); return a; }
+    var daily = { total: zeros(today), saunas: zeros(today), hottubs: zeros(today) };
+    var monthly = zeros(m + 1);
+    var rows = Array.isArray(data.NLRAW) ? data.NLRAW : [];
+    rows.forEach(function (r) {
+      var range = r && r['__range'] && r['__range']['date:day'];
+      if (!range || !range.from) return;
+      var p = range.from.slice(0, 10).split('-');
+      var ry = +p[0], rm = +p[1] - 1, rd = +p[2];
+      var v = Number(r.price_subtotal) || 0;
+      if (ry !== y || rm > m) return;
+      monthly[rm] += v;
+      if (rm !== m || rd > today) return;
+      daily.total[rd - 1] += v;
+      var cat = r.categ_id && r.categ_id[0];
+      if (cat === CATEG_SAUNAS) daily.saunas[rd - 1] += v;
+      else if (cat === CATEG_HOTTUBS) daily.hottubs[rd - 1] += v;
+    });
     return { year: y, month: m, daysInMonth: new Date(y, m + 1, 0).getDate(), daily: daily, monthly: monthly };
   }
 
@@ -405,7 +415,7 @@
   function updateSubtitle() {
     var nlValue = document.querySelector('.glass-card[data-key="nl"] .value').textContent;
     document.getElementById('subtitle').textContent =
-      currentView === 2 ? '🇳🇱 Nederland · ' + nlValue : 'Omzet per vestiging · deze maand (ver 0.2.3a lite - Raspberry Pi 3B edition)';
+      currentView === 2 ? '🇳🇱 Nederland · ' + nlValue : 'Omzet per vestiging · deze maand (ver 0.3.0a lite - Raspberry Pi 3B edition)';
   }
   var currentView = 1;
   var animating = false;
